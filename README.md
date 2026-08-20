@@ -57,7 +57,7 @@ Then start a new Codex thread so the plugin skills and MCP tools are loaded.
 ### Install locally
 
 ```bash
-codex plugin marketplace add /path/to/grok-in-codex/.agents/plugins
+codex plugin marketplace add /path/to/grok-in-codex
 codex plugin add grok@grok-in-codex
 ```
 
