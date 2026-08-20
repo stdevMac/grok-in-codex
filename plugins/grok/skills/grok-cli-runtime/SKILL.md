@@ -66,8 +66,10 @@ MCP input keys map to companion flags:
 ## Task (`grok_rescue`)
 
 - Exactly one `task` invocation per handoff
-- Map `fast` → `--model grok-composer-2.5-fast`
-- Map `deep` → `--model grok-4.5 --effort high`
+- Map `fast`, `default`, and `grok` to the installed CLI's configured default model.
+- Map `deep` to the installed CLI's configured default model with `--effort high`.
+- Pass explicit model ids through unchanged; use `grok models` to discover valid ids.
+- Pass explicit effort ids through to the installed CLI for validation; legacy `max` maps to `xhigh`.
 - `resume` → `--resume-last`; `resumeSession` → resume that id; `fresh` → no resume
 - Pass `worktree`, `check`, `bestOfN` through when present
 - Default write-capable; `readOnly` only when requested

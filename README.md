@@ -12,7 +12,7 @@ Using Claude Code instead? Use the sibling plugin: [grok-in-claude](https://gith
 
 | Codex MCP tool | Purpose |
 | --- | --- |
-| `grok_setup` | Check CLI + auth + version floor + doctor; toggle stop review gate |
+| `grok_setup` | Check CLI + auth + available models + version floor + doctor; toggle stop review gate |
 | `grok_rescue` | Delegate investigation / fixes (write-capable; full control flags) |
 | `grok_plan` | Plan mode only (explore → plan.md under `.grok-plans/`) |
 | `grok_review` | Structured read-only review (tree / branch / PR; optional `postPending`) |
@@ -134,6 +134,9 @@ For multi-PR or ambiguous product work, prefer:
 - Prefer **denylist** (`--disallowed-tools`) over tools allowlist.
 - Media: no yolo / no tools allowlist.
 - `dryRun` / `validateOnly` / babysit `list`: **read-only** (no yolo).
+- `fast`, `default`, `deep`, and `grok` aliases defer to the installed CLI's configured default model instead of pinning a model id that can expire. `deep` also selects `high` effort.
+- Explicit model ids pass through unchanged. Discover current ids with `grok models`.
+- Explicit effort ids pass through to the installed CLI for validation; legacy `max` maps to `xhigh`.
 
 ## Environment variables
 

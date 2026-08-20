@@ -7,8 +7,41 @@ import {
   formatStreamProgressMessage,
   getStreamProgressHelperSource,
   humanizeGrokFailure,
+  parseGrokModelsOutput,
   parseGrokJsonOutput
 } from "../plugins/grok/scripts/lib/grok.mjs";
+
+test("parseGrokModelsOutput discovers the CLI default and available models", () => {
+  const parsed = parseGrokModelsOutput({
+    status: 0,
+    stdout: [
+      "You are logged in with grok.com.",
+      "Default model: grok-4.6",
+      "Available models:",
+      "  * grok-4.6 (default)",
+      "  - grok-4.5"
+    ].join("\n")
+  });
+
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.defaultModel, "grok-4.6");
+  assert.deepEqual(parsed.availableModels, ["grok-4.6", "grok-4.5"]);
+});
+
+test("parseGrokModelsOutput fails closed when models cannot be discovered", () => {
+  const parsed = parseGrokModelsOutput({ status: 1, stderr: "not logged in" });
+  assert.equal(parsed.ok, false);
+  assert.deepEqual(parsed.availableModels, []);
+});
+
+test("parseGrokModelsOutput ignores unrelated bulleted diagnostics", () => {
+  const parsed = parseGrokModelsOutput({
+    status: 0,
+    stdout: "Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)",
+    stderr: "Warnings:\n  - config key ignored"
+  });
+  assert.deepEqual(parsed.availableModels, ["grok-4.6"]);
+});
 
 test("parseGrokJsonOutput reads success payload", () => {
   const parsed = parseGrokJsonOutput(

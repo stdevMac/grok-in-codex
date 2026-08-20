@@ -47,7 +47,9 @@ const COMMON_JOB_PROPERTIES = {
   ...WORKSPACE_PROPERTY,
   background: booleanSchema("Start a background job and return the job id."),
   model: stringSchema("Grok model id or alias, such as fast or deep."),
-  effort: stringSchema("Reasoning effort: none, minimal, low, medium, high, xhigh, or max."),
+  effort: stringSchema(
+    "Reasoning effort accepted by the installed Grok CLI (commonly low, medium, high, or xhigh; legacy max maps to xhigh)."
+  ),
   json: booleanSchema("Return machine-readable JSON from the companion."),
   ...CONTROL_PROPERTIES
 };
@@ -56,7 +58,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "grok_setup",
     description:
-      "Check Grok CLI availability, authentication, min version, and doctor. Optionally toggle the stop review gate.",
+      "Check Grok CLI availability, authentication, models, min version, and doctor. Optionally toggle the stop review gate.",
     inputSchema: {
       type: "object",
       additionalProperties: false,

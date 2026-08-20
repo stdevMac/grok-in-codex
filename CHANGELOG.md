@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- **Grok CLI model compatibility**: model aliases now defer to the installed CLI's configured default instead of pinning removed model ids. Setup reports the current default and available models.
+- **Effort compatibility**: explicit effort ids are validated by the installed CLI rather than a stale plugin allowlist; legacy `max` still maps to `xhigh`.
+
 ## 0.5.8
 
 ### Fixed
