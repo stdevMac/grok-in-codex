@@ -71,7 +71,9 @@ MCP input keys map to companion flags:
 - Pass explicit model ids through unchanged; use `grok models` to discover valid ids.
 - Pass explicit effort ids through to the installed CLI for validation; legacy `max` maps to `xhigh`.
 - `resume` → `--resume-last`; `resumeSession` → resume that id; `fresh` → no resume
-- Pass `worktree`, `check`, `bestOfN` through when present
+- `check` appends an explicit self-verification instruction; Grok CLI 1.0.5 no longer has a `--check` flag.
+- Headless Grok CLI does not create a worktree from `--worktree`. Create an isolated worktree outside the plugin and pass it as `cwd`.
+- Grok CLI 1.0.5 does not support `bestOfN`; use separate isolated jobs explicitly.
 - Default write-capable; `readOnly` only when requested
 
 ## Plan (`grok_plan`)

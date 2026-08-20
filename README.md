@@ -154,7 +154,9 @@ Default state root when unset: `~/.grok/codex-plugin/state/`. Codex does **not**
 
 - Write-capable by default.
 - Use `readOnly=true` for investigation-only work.
-- Use `worktree=true` / `check=true` / `bestOfN` for safer or parallel attempts.
+- Use `check=true` to require focused verification before Grok returns.
+- For isolation, create a Git worktree first and pass that directory as `cwd`; Grok CLI 1.0.5 does not create worktrees in headless mode.
+- Grok CLI 1.0.5 does not support `bestOfN`; run separate isolated jobs explicitly when multiple attempts are needed.
 - Full control surface available (sandbox, memory, agent, allow/deny, maxTurns, …).
 
 ### Plan / design / execute

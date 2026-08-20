@@ -214,20 +214,12 @@ export function buildGrokArgs(options = {}) {
     args.push("--max-turns", String(options.maxTurns));
   }
   if (options.bestOfN && Number(options.bestOfN) > 1) {
-    args.push("--best-of-n", String(options.bestOfN));
+    throw new Error("Headless Grok CLI does not support --best-of-n.");
   }
-  if (options.check) {
-    args.push("--check");
-  }
-  if (options.worktree) {
-    if (typeof options.worktree === "string" && options.worktree !== "true") {
-      args.push("--worktree", options.worktree);
-    } else {
-      args.push("--worktree");
-    }
-  }
-  if (options.worktreeRef) {
-    args.push("--worktree-ref", options.worktreeRef);
+  if (options.worktree || options.worktreeRef) {
+    throw new Error(
+      "Headless Grok CLI does not create worktrees. Prepare one externally and pass it as cwd."
+    );
   }
 
   // Control surface (Grok Build 0.2.118+)

@@ -36,3 +36,11 @@ export function normalizeEffort(effort, modelAlias) {
   }
   return normalized === "max" ? "xhigh" : normalized;
 }
+
+export function withSelfCheckInstruction(prompt, enabled) {
+  const normalized = String(prompt ?? "").trim();
+  if (!enabled || !normalized) {
+    return normalized;
+  }
+  return `${normalized}\n\nBefore finishing, run the relevant focused checks, inspect the resulting diff, and report the commands and observed outcomes. Do not claim a check passed unless you ran it.`;
+}

@@ -70,7 +70,7 @@ import {
   extractArtifactPaths,
   resolveMediaOutputDir
 } from "./lib/media.mjs";
-import { normalizeEffort, normalizeModel } from "./lib/model-options.mjs";
+import { normalizeEffort, normalizeModel, withSelfCheckInstruction } from "./lib/model-options.mjs";
 import { readPidFile, runCommand, terminateProcessTree, writePidFile } from "./lib/process.mjs";
 import {
   renderBackgroundStarted,
@@ -739,6 +739,17 @@ async function commandTask(argv) {
     options["worktree-name"] ||
     (options.worktree ? true : false);
   const check = Boolean(options.check);
+  if (worktree) {
+    throw new Error(
+      "Headless Grok CLI does not create a worktree from --worktree. Create an isolated Git worktree first and pass its path with --cwd."
+    );
+  }
+  if (bestOfN != null && bestOfN > 1) {
+    throw new Error(
+      "This Grok CLI does not support --best-of-n. Start separate isolated jobs explicitly instead."
+    );
+  }
+  const taskPrompt = withSelfCheckInstruction(prompt, check);
 
   let resume = null;
   if (options.fresh) {
@@ -765,7 +776,7 @@ async function commandTask(argv) {
   const job = createJobShell(cwd, {
     kind: "task",
     title: titleFromPrompt(prompt),
-    prompt,
+    prompt: taskPrompt,
     write: writeMode,
     model,
     effort,
@@ -786,10 +797,6 @@ async function commandTask(argv) {
     effort,
     resume,
     maxTurns: options["max-turns"] ? Number(options["max-turns"]) : undefined,
-    bestOfN,
-    check,
-    worktree,
-    worktreeRef: options["worktree-ref"],
     verbatim: Boolean(options.verbatim)
   };
   grokOptions = applyControlToGrokOptions(grokOptions, control);

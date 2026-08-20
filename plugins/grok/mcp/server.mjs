@@ -21,7 +21,7 @@ const WORKSPACE_PROPERTY = {
 
 /** Shared control surface for long-running Grok jobs (mirrors Claude companion flags). */
 const CONTROL_PROPERTIES = {
-  sandbox: stringSchema("Grok sandbox profile (e.g. read-only, workspace-write)."),
+  sandbox: stringSchema("Grok sandbox profile: off, workspace, read-only, strict, or devbox."),
   planMode: booleanSchema("Enable Grok plan mode (--plan)."),
   permissionMode: stringSchema("Permission mode passed to Grok."),
   agent: stringSchema("Grok agent name to use."),
@@ -83,11 +83,11 @@ const TOOL_DEFINITIONS = [
         resume: booleanSchema("Resume the latest Grok task session for this repository."),
         resumeSession: stringSchema("Resume a specific Grok session id."),
         fresh: booleanSchema("Start a fresh Grok session."),
-        worktree: booleanSchema("Run edits in a Grok-managed git worktree."),
-        worktreeName: stringSchema("Name for a Grok-managed git worktree."),
-        worktreeRef: stringSchema("Base ref for the Grok worktree."),
-        check: booleanSchema("Ask Grok to verify its own work before returning."),
-        bestOfN: integerSchema("Run N parallel attempts of the same task and keep the best."),
+        worktree: booleanSchema("Unsupported by the current headless CLI; create a worktree externally and pass it as cwd."),
+        worktreeName: stringSchema("Unsupported by the current headless CLI; create a worktree externally and pass it as cwd."),
+        worktreeRef: stringSchema("Unsupported by the current headless CLI; create a worktree externally and pass it as cwd."),
+        check: booleanSchema("Append an instruction requiring Grok to run focused checks and inspect its diff before returning."),
+        bestOfN: integerSchema("Unsupported by the current CLI; start separate isolated jobs explicitly."),
         verbatim: booleanSchema("Avoid adding extra wrapper instructions to the prompt."),
         ...COMMON_JOB_PROPERTIES
       }
