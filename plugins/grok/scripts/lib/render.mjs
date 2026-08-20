@@ -50,6 +50,14 @@ export function renderSetupReport(payload) {
   if (payload.authDetail) {
     lines.push(`- **Auth detail**: ${payload.authDetail}`);
   }
+  if (payload.defaultModel) {
+    lines.push(`- **Default model**: ${payload.defaultModel}`);
+  }
+  if (payload.availableModels?.length) {
+    lines.push(`- **Available models**: ${payload.availableModels.join(", ")}`);
+  } else if (payload.modelsOk === false && payload.modelsDetail) {
+    lines.push(`- **Models**: issues — ${short(payload.modelsDetail, 120)}`);
+  }
   if (payload.doctorDetail) {
     lines.push(`- **Doctor**: ${payload.doctorOk ? "ok" : "issues"} — ${short(payload.doctorDetail, 120)}`);
   }
