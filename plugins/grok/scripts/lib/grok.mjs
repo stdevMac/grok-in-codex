@@ -358,6 +358,15 @@ export function humanizeGrokFailure(sources = {}) {
     return "Grok rate-limited the request. Wait a moment and retry.";
   }
 
+  if (/unknown effort level|invalid (?:reasoning[- ]?)?effort/i.test(blob)) {
+    const supported = blob.match(/(?:use one of|possible values):\s*([^\n\r]+)/i)?.[1]?.trim();
+    return (
+      "Grok rejected the requested reasoning effort. " +
+      (supported ? `The installed CLI reports: ${supported}. ` : "Check the installed CLI's supported effort values. ") +
+      "Choose a supported effort explicitly; the plugin has not substituted a different level."
+    );
+  }
+
   if (/model .+ not found|unknown model|invalid model/i.test(blob)) {
     return "Grok rejected the model id. Run `grok models`, pass one of the reported ids, or omit --model to use the CLI default.";
   }

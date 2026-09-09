@@ -69,7 +69,7 @@ MCP input keys map to companion flags:
 - Map `fast`, `default`, and `grok` to the installed CLI's configured default model.
 - Map `deep` to the installed CLI's configured default model with `--effort high`.
 - Pass explicit model ids through unchanged; use `grok models` to discover valid ids.
-- Pass explicit effort ids through to the installed CLI for validation; legacy `max` maps to `xhigh`.
+- Pass explicit effort ids through unchanged to the installed CLI for validation. CLI 1.0.24 accepts `low`, `medium`, and `high`; do not promise `xhigh` or silently substitute another level.
 - `resume` → `--resume-last`; `resumeSession` → resume that id; `fresh` → no resume
 - `check` appends an explicit self-verification instruction; Grok CLI 1.0.5 no longer has a `--check` flag.
 - Headless Grok CLI does not create a worktree from `--worktree`. Create an isolated worktree outside the plugin and pass it as `cwd`.

@@ -26,5 +26,6 @@ test("deep keeps its effort preset and explicit efforts pass through", () => {
   assert.equal(normalizeEffort(undefined, "fast"), null);
   assert.equal(normalizeEffort("xhigh", "fast"), "xhigh");
   assert.equal(normalizeEffort("future-effort", null), "future-effort");
-  assert.equal(normalizeEffort("max", null), "xhigh");
+  assert.equal(normalizeEffort("max", null), "max");
+  assert.equal(normalizeEffort(" LOW ", "deep"), "low");
 });

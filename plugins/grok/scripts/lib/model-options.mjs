@@ -20,8 +20,8 @@ export function normalizeModel(model) {
 }
 
 /**
- * Preserve the deep preset and the legacy max alias, then let the installed CLI
- * validate all other effort names. The CLI is the authoritative capability source.
+ * Preserve the deep preset, then let the installed CLI validate explicit effort
+ * names. Never substitute a different reasoning level for an explicit request.
  */
 export function normalizeEffort(effort, modelAlias) {
   if (effort == null && modelAlias && PRESET_EFFORT.has(String(modelAlias).toLowerCase())) {
@@ -34,7 +34,7 @@ export function normalizeEffort(effort, modelAlias) {
   if (!normalized) {
     return null;
   }
-  return normalized === "max" ? "xhigh" : normalized;
+  return normalized;
 }
 
 export function withSelfCheckInstruction(prompt, enabled) {

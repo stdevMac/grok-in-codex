@@ -739,10 +739,13 @@ async function commandTask(argv) {
     options["worktree-name"] ||
     (options.worktree ? true : false);
   const check = Boolean(options.check);
-  if (worktree) {
+  if (worktree || options["worktree-ref"]) {
     throw new Error(
       "Headless Grok CLI does not create a worktree from --worktree. Create an isolated Git worktree first and pass its path with --cwd."
     );
+  }
+  if (bestOfN != null && (!Number.isInteger(bestOfN) || bestOfN < 1)) {
+    throw new Error("--best-of-n must be a positive integer.");
   }
   if (bestOfN != null && bestOfN > 1) {
     throw new Error(

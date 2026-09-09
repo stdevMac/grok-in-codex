@@ -48,7 +48,7 @@ const COMMON_JOB_PROPERTIES = {
   background: booleanSchema("Start a background job and return the job id."),
   model: stringSchema("Grok model id or alias, such as fast or deep."),
   effort: stringSchema(
-    "Reasoning effort accepted by the installed Grok CLI (commonly low, medium, high, or xhigh; legacy max maps to xhigh)."
+    "Reasoning effort accepted by the installed Grok CLI. CLI 1.0.24 accepts low, medium, or high. Explicit values pass through without substitution; unsupported values fail."
   ),
   json: booleanSchema("Return machine-readable JSON from the companion."),
   ...CONTROL_PROPERTIES

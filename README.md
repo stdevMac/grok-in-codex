@@ -136,7 +136,7 @@ For multi-PR or ambiguous product work, prefer:
 - `dryRun` / `validateOnly` / babysit `list`: **read-only** (no yolo).
 - `fast`, `default`, `deep`, and `grok` aliases defer to the installed CLI's configured default model instead of pinning a model id that can expire. `deep` also selects `high` effort.
 - Explicit model ids pass through unchanged. Discover current ids with `grok models`.
-- Explicit effort ids pass through to the installed CLI for validation; legacy `max` maps to `xhigh`.
+- Explicit effort ids pass through unchanged to the installed CLI for validation. CLI 1.0.24 accepts `low`, `medium`, and `high`; do not promise `xhigh` or silently substitute another level.
 
 ## Environment variables
 

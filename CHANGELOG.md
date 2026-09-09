@@ -4,7 +4,7 @@
 
 ### Fixed
 - **Grok CLI model compatibility**: model aliases now defer to the installed CLI's configured default instead of pinning removed model ids. Setup reports the current default and available models.
-- **Effort compatibility**: explicit effort ids are validated by the installed CLI rather than a stale plugin allowlist; legacy `max` still maps to `xhigh`.
+- **Effort compatibility**: explicit effort ids are validated by the installed CLI rather than a stale plugin allowlist. Preserve explicit values (including `max`) without substitution and report the supported values when the CLI rejects an effort. CLI 1.0.24 accepts `low`, `medium`, and `high`.
 - **Headless task compatibility**: `check` now adds a verification instruction instead of passing the removed `--check` flag. Unsupported headless `worktree` and `bestOfN` requests fail with actionable guidance instead of silently skipping isolation or crashing in the CLI.
 
 ## 0.5.8
