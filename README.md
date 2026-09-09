@@ -12,7 +12,7 @@ Using Claude Code instead? Use the sibling plugin: [grok-in-claude](https://gith
 
 | Codex MCP tool | Purpose |
 | --- | --- |
-| `grok_setup` | Check CLI + auth + version floor + doctor; toggle stop review gate |
+| `grok_setup` | Check CLI + auth + available models + version floor + doctor; toggle stop review gate |
 | `grok_rescue` | Delegate investigation / fixes (write-capable; full control flags) |
 | `grok_plan` | Plan mode only (explore → plan.md under `.grok-plans/`) |
 | `grok_review` | Structured read-only review (tree / branch / PR; optional `postPending`) |
@@ -57,7 +57,7 @@ Then start a new Codex thread so the plugin skills and MCP tools are loaded.
 ### Install locally
 
 ```bash
-codex plugin marketplace add /path/to/grok-in-codex/.agents/plugins
+codex plugin marketplace add /path/to/grok-in-codex
 codex plugin add grok@grok-in-codex
 ```
 
@@ -134,6 +134,9 @@ For multi-PR or ambiguous product work, prefer:
 - Prefer **denylist** (`--disallowed-tools`) over tools allowlist.
 - Media: no yolo / no tools allowlist.
 - `dryRun` / `validateOnly` / babysit `list`: **read-only** (no yolo).
+- `fast`, `default`, `deep`, and `grok` aliases defer to the installed CLI's configured default model instead of pinning a model id that can expire. All aliases inherit the configured reasoning effort when `effort` is omitted.
+- Explicit model ids pass through unchanged. Discover current ids with `grok models`.
+- Explicit effort ids pass through unchanged to the installed CLI for validation. The CLI 1.0.24 flag accepts `low`, `medium`, and `high`, while `[models] default_reasoning_effort = "xhigh"` in `~/.grok/config.toml` works when no effort flag is sent. Omit `effort` to inherit that config; never silently substitute another level.
 
 ## Environment variables
 
@@ -151,7 +154,9 @@ Default state root when unset: `~/.grok/codex-plugin/state/`. Codex does **not**
 
 - Write-capable by default.
 - Use `readOnly=true` for investigation-only work.
-- Use `worktree=true` / `check=true` / `bestOfN` for safer or parallel attempts.
+- Use `check=true` to require focused verification before Grok returns.
+- For isolation, create a Git worktree first and pass that directory as `cwd`; Grok CLI 1.0.5 does not create worktrees in headless mode.
+- Grok CLI 1.0.5 does not support `bestOfN`; run separate isolated jobs explicitly when multiple attempts are needed.
 - Full control surface available (sandbox, memory, agent, allow/deny, maxTurns, …).
 
 ### Plan / design / execute

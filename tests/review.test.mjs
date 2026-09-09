@@ -35,20 +35,19 @@ test("tryParseStructuredReview parses fenced JSON", () => {
   assert.equal(reviewHasBlockingFindings(review), true);
 });
 
-test("buildGrokArgs supports best-of-n check worktree schema", () => {
+test("buildGrokArgs rejects unsupported headless best-of-n and worktree flags", () => {
+  assert.throws(() => buildGrokArgs({ prompt: "fix it", bestOfN: 3 }), /best-of-n/);
+  assert.throws(() => buildGrokArgs({ prompt: "fix it", worktree: "rescue-1" }), /worktree/i);
+});
+
+test("buildGrokArgs never passes the removed check flag", () => {
   const args = buildGrokArgs({
     prompt: "fix it",
     write: true,
-    bestOfN: 3,
     check: true,
-    worktree: "rescue-1",
     jsonSchema: '{"type":"object"}'
   });
-  assert.ok(args.includes("--best-of-n"));
-  assert.ok(args.includes("3"));
-  assert.ok(args.includes("--check"));
-  assert.ok(args.includes("--worktree"));
-  assert.ok(args.includes("rescue-1"));
+  assert.ok(!args.includes("--check"));
   assert.ok(args.includes("--json-schema"));
   assert.ok(args.includes("--yolo"));
 });

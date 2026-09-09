@@ -33,6 +33,7 @@ import { collectStopGateContext, resolveReviewTarget } from "./lib/git.mjs";
 import {
   getGrokAuthStatus,
   getGrokAvailability,
+  getGrokModelsStatus,
   humanizeGrokFailure,
   parseGrokJsonOutput,
   runGrok,
@@ -69,6 +70,7 @@ import {
   extractArtifactPaths,
   resolveMediaOutputDir
 } from "./lib/media.mjs";
+import { normalizeEffort, normalizeModel, withSelfCheckInstruction } from "./lib/model-options.mjs";
 import { readPidFile, runCommand, terminateProcessTree, writePidFile } from "./lib/process.mjs";
 import {
   renderBackgroundStarted,
@@ -97,16 +99,6 @@ import {
 import { resolveWorkspaceRoot } from "./lib/workspace.mjs";
 
 const ROOT_DIR = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
-const VALID_EFFORTS = new Set(["none", "minimal", "low", "medium", "high", "xhigh", "max"]);
-const MODEL_ALIASES = new Map([
-  ["fast", "grok-composer-2.5-fast"],
-  ["default", "grok-4.5"],
-  ["deep", "grok-4.5"],
-  ["grok", "grok-4.5"]
-]);
-const PRESET_EFFORT = new Map([
-  ["deep", "high"]
-]);
 
 function printUsage() {
   console.log(
@@ -169,34 +161,6 @@ function outputResult(value, asJson) {
   } else {
     process.stdout.write(value);
   }
-}
-
-function normalizeModel(model) {
-  if (model == null) {
-    return null;
-  }
-  const normalized = String(model).trim();
-  if (!normalized) {
-    return null;
-  }
-  return MODEL_ALIASES.get(normalized.toLowerCase()) ?? normalized;
-}
-
-function normalizeEffort(effort, modelAlias) {
-  if (effort == null && modelAlias && PRESET_EFFORT.has(String(modelAlias).toLowerCase())) {
-    return PRESET_EFFORT.get(String(modelAlias).toLowerCase());
-  }
-  if (effort == null) {
-    return null;
-  }
-  const normalized = String(effort).trim().toLowerCase();
-  if (!normalized) {
-    return null;
-  }
-  if (!VALID_EFFORTS.has(normalized)) {
-    throw new Error(`Invalid --effort value: ${effort}. Expected one of ${[...VALID_EFFORTS].join(", ")}`);
-  }
-  return normalized === "max" ? "xhigh" : normalized;
 }
 
 function titleFromPrompt(prompt, fallback = "Grok task") {
@@ -628,8 +592,16 @@ async function commandSetup(argv) {
   }
 
   const availability = getGrokAvailability();
+  const models = availability.available
+    ? getGrokModelsStatus()
+    : {
+        ok: false,
+        defaultModel: null,
+        availableModels: [],
+        detail: availability.reason
+      };
   const auth = availability.available
-    ? getGrokAuthStatus()
+    ? getGrokAuthStatus(models)
     : { authenticated: false, detail: availability.reason };
   const config = getConfig(cwd);
 
@@ -654,6 +626,9 @@ async function commandSetup(argv) {
   } else if (!auth.authenticated) {
     nextSteps.push("Run `grok login` (or login from your host agent shell).");
   }
+  if (availability.available && auth.authenticated && !models.ok) {
+    nextSteps.push("Run `grok models` and resolve any model configuration error before using the plugin.");
+  }
   if (versionOk === false) {
     nextSteps.push(
       `Upgrade Grok CLI to ≥ ${MIN_GROK_VERSION} for full plugin features (current: ${availability.version}).`
@@ -661,7 +636,7 @@ async function commandSetup(argv) {
   }
 
   const payload = {
-    ready: Boolean(availability.available && auth.authenticated),
+    ready: Boolean(availability.available && auth.authenticated && models.ok),
     available: availability.available,
     binary: availability.binary,
     version: availability.version,
@@ -669,6 +644,10 @@ async function commandSetup(argv) {
     minVersion: MIN_GROK_VERSION,
     authenticated: auth.authenticated,
     authDetail: auth.detail,
+    modelsOk: models.ok,
+    defaultModel: models.defaultModel,
+    availableModels: models.availableModels,
+    modelsDetail: models.detail,
     doctorOk: doctor ? doctor.ok : null,
     doctorDetail: doctor ? doctor.detail : null,
     stopReviewGate: Boolean(config.stopReviewGate),
@@ -760,6 +739,20 @@ async function commandTask(argv) {
     options["worktree-name"] ||
     (options.worktree ? true : false);
   const check = Boolean(options.check);
+  if (worktree || options["worktree-ref"]) {
+    throw new Error(
+      "Headless Grok CLI does not create a worktree from --worktree. Create an isolated Git worktree first and pass its path with --cwd."
+    );
+  }
+  if (bestOfN != null && (!Number.isInteger(bestOfN) || bestOfN < 1)) {
+    throw new Error("--best-of-n must be a positive integer.");
+  }
+  if (bestOfN != null && bestOfN > 1) {
+    throw new Error(
+      "This Grok CLI does not support --best-of-n. Start separate isolated jobs explicitly instead."
+    );
+  }
+  const taskPrompt = withSelfCheckInstruction(prompt, check);
 
   let resume = null;
   if (options.fresh) {
@@ -786,7 +779,7 @@ async function commandTask(argv) {
   const job = createJobShell(cwd, {
     kind: "task",
     title: titleFromPrompt(prompt),
-    prompt,
+    prompt: taskPrompt,
     write: writeMode,
     model,
     effort,
@@ -807,10 +800,6 @@ async function commandTask(argv) {
     effort,
     resume,
     maxTurns: options["max-turns"] ? Number(options["max-turns"]) : undefined,
-    bestOfN,
-    check,
-    worktree,
-    worktreeRef: options["worktree-ref"],
     verbatim: Boolean(options.verbatim)
   };
   grokOptions = applyControlToGrokOptions(grokOptions, control);
@@ -1124,7 +1113,7 @@ async function commandDesign(argv) {
   }
   const control = controlFromParsedOptions(options);
   const model = normalizeModel(options.model || "deep");
-  const effort = normalizeEffort(options.effort || "high", options.model || "deep");
+  const effort = normalizeEffort(options.effort);
   const prompt = buildDesignPrompt(brief);
   const jobConfig = controlToJobConfig(control, {});
 

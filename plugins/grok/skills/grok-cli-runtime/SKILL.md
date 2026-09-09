@@ -66,10 +66,14 @@ MCP input keys map to companion flags:
 ## Task (`grok_rescue`)
 
 - Exactly one `task` invocation per handoff
-- Map `fast` → `--model grok-composer-2.5-fast`
-- Map `deep` → `--model grok-4.5 --effort high`
+- Map `fast`, `default`, and `grok` to the installed CLI's configured default model.
+- Map `deep` to the installed CLI's configured default model; do not inject an effort override.
+- Pass explicit model ids through unchanged; use `grok models` to discover valid ids.
+- Pass explicit effort ids through unchanged to the installed CLI for validation. The CLI 1.0.24 flag accepts `low`, `medium`, and `high`. To use `[models] default_reasoning_effort = "xhigh"` from `~/.grok/config.toml`, omit `effort`; this path was verified in saved session metadata. Never silently substitute another level.
 - `resume` → `--resume-last`; `resumeSession` → resume that id; `fresh` → no resume
-- Pass `worktree`, `check`, `bestOfN` through when present
+- `check` appends an explicit self-verification instruction; Grok CLI 1.0.5 no longer has a `--check` flag.
+- Headless Grok CLI does not create a worktree from `--worktree`. Create an isolated worktree outside the plugin and pass it as `cwd`.
+- Grok CLI 1.0.5 does not support `bestOfN`; use separate isolated jobs explicitly.
 - Default write-capable; `readOnly` only when requested
 
 ## Plan (`grok_plan`)

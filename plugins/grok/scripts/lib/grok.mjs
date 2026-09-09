@@ -82,18 +82,79 @@ export function runGrokDoctor() {
   };
 }
 
-export function getGrokAuthStatus() {
+export function parseGrokModelsOutput({ stdout = "", stderr = "", status = null } = {}) {
+  const stdoutText = String(stdout ?? "");
+  const stderrText = String(stderr ?? "");
+  const combined = `${stdoutText}\n${stderrText}`;
+  const defaultModel = combined.match(/Default model:\s*([^\s]+)/i)?.[1]?.trim() || null;
+  const availableModels = [];
+  let inAvailableModels = false;
+
+  for (const line of combined.split(/\r?\n/)) {
+    if (/^\s*Available models:\s*$/i.test(line)) {
+      inAvailableModels = true;
+      continue;
+    }
+    if (!inAvailableModels) {
+      continue;
+    }
+    const match = line.match(/^\s*[*-]\s+([^\s(]+)/);
+    if (match && !availableModels.includes(match[1])) {
+      availableModels.push(match[1]);
+    } else if (line.trim()) {
+      inAvailableModels = false;
+    }
+  }
+  if (defaultModel && !availableModels.includes(defaultModel)) {
+    availableModels.unshift(defaultModel);
+  }
+
+  const ok = status === 0 && Boolean(defaultModel || availableModels.length > 0);
+  return {
+    ok,
+    defaultModel,
+    availableModels,
+    detail: ok
+      ? `Default: ${defaultModel || "unknown"}; available: ${availableModels.join(", ")}`
+      : (stderrText || stdoutText || `models exited ${status}`).trim(),
+    stdout: stdoutText,
+    stderr: stderrText,
+    status,
+    combined
+  };
+}
+
+export function getGrokModelsStatus() {
+  const binary = resolveGrokBinary();
+  if (!binary) {
+    return {
+      ok: false,
+      defaultModel: null,
+      availableModels: [],
+      detail: "Grok CLI not found",
+      stdout: "",
+      stderr: "",
+      status: null,
+      combined: ""
+    };
+  }
+
+  const result = runCommand(binary, ["models"], { maxBuffer: 2 * 1024 * 1024 });
+  return parseGrokModelsOutput(result);
+}
+
+export function getGrokAuthStatus(modelsStatus = null) {
   const binary = resolveGrokBinary();
   if (!binary) {
     return { authenticated: false, detail: "Grok CLI not found" };
   }
 
-  const result = runCommand(binary, ["models"], { maxBuffer: 2 * 1024 * 1024 });
-  const stdout = String(result.stdout ?? "");
-  const stderr = String(result.stderr ?? "");
-  const combined = `${stdout}\n${stderr}`;
+  const models = modelsStatus ?? getGrokModelsStatus();
+  const stdout = String(models.stdout ?? "");
+  const stderr = String(models.stderr ?? "");
+  const combined = models.combined ?? `${stdout}\n${stderr}`;
 
-  if (result.status === 0 && /logged in|Available models|Default model/i.test(combined)) {
+  if (models.status === 0 && /logged in|Available models|Default model/i.test(combined)) {
     const loginMatch = combined.match(/logged in with ([^\n.]+)/i);
     return {
       authenticated: true,
@@ -108,7 +169,7 @@ export function getGrokAuthStatus() {
     };
   }
 
-  if (result.status === 0 && /grok-/i.test(combined)) {
+  if (models.status === 0 && /grok-/i.test(combined)) {
     return { authenticated: true, detail: "Authenticated (models list succeeded)" };
   }
 
@@ -153,20 +214,12 @@ export function buildGrokArgs(options = {}) {
     args.push("--max-turns", String(options.maxTurns));
   }
   if (options.bestOfN && Number(options.bestOfN) > 1) {
-    args.push("--best-of-n", String(options.bestOfN));
+    throw new Error("Headless Grok CLI does not support --best-of-n.");
   }
-  if (options.check) {
-    args.push("--check");
-  }
-  if (options.worktree) {
-    if (typeof options.worktree === "string" && options.worktree !== "true") {
-      args.push("--worktree", options.worktree);
-    } else {
-      args.push("--worktree");
-    }
-  }
-  if (options.worktreeRef) {
-    args.push("--worktree-ref", options.worktreeRef);
+  if (options.worktree || options.worktreeRef) {
+    throw new Error(
+      "Headless Grok CLI does not create worktrees. Prepare one externally and pass it as cwd."
+    );
   }
 
   // Control surface (Grok Build 0.2.118+)
@@ -305,8 +358,17 @@ export function humanizeGrokFailure(sources = {}) {
     return "Grok rate-limited the request. Wait a moment and retry.";
   }
 
+  if (/unknown effort level|invalid (?:reasoning[- ]?)?effort/i.test(blob)) {
+    const supported = blob.match(/(?:use one of|possible values):\s*([^\n\r]+)/i)?.[1]?.trim();
+    return (
+      "Grok rejected the requested reasoning effort. " +
+      (supported ? `The installed CLI reports: ${supported}. ` : "Check the installed CLI's supported effort values. ") +
+      "Choose a supported effort explicitly; the plugin has not substituted a different level."
+    );
+  }
+
   if (/model .+ not found|unknown model|invalid model/i.test(blob)) {
-    return "Grok rejected the model id. Use a valid model (e.g. `grok-4.5` or `--model fast`).";
+    return "Grok rejected the model id. Run `grok models`, pass one of the reported ids, or omit --model to use the CLI default.";
   }
 
   // Prefer structured JSON error message if present in the blob
