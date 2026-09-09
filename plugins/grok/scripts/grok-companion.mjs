@@ -1113,7 +1113,7 @@ async function commandDesign(argv) {
   }
   const control = controlFromParsedOptions(options);
   const model = normalizeModel(options.model || "deep");
-  const effort = normalizeEffort(options.effort || "high", options.model || "deep");
+  const effort = normalizeEffort(options.effort);
   const prompt = buildDesignPrompt(brief);
   const jobConfig = controlToJobConfig(control, {});
 

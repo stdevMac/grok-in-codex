@@ -14,6 +14,9 @@ const fs = require('node:fs');
 const args = process.argv.slice(2);
 if (args[0] === 'version') { console.log('grok 1.0.24'); process.exit(0); }
 if (args.includes('--check')) { console.error("error: unexpected argument '--check' found"); process.exit(2); }
+if (process.env.MOCK_REQUIRE_DEFAULT_EFFORT && args.includes('--effort')) {
+  console.error('Unexpected effort override; expected CLI config inheritance'); process.exit(2);
+}
 const effort = args[args.indexOf('--effort') + 1];
 if (args.includes('--effort') && !['high','medium','low'].includes(effort)) {
   console.error("Error: --effort/--reasoning-effort: unknown effort level '" + effort + "'; use one of: high, medium, low");
@@ -41,7 +44,7 @@ async function withFixture(fn) {
   try {
     await fn(cwd);
   } finally {
-    for (const key of ["GROK_BINARY", "GROK_CODEX_PLUGIN_STATE", "CODEX_PLUGIN_DATA"]) {
+    for (const key of ["GROK_BINARY", "GROK_CODEX_PLUGIN_STATE", "CODEX_PLUGIN_DATA", "MOCK_REQUIRE_DEFAULT_EFFORT"]) {
       if (previous[key] === undefined) delete process.env[key];
       else process.env[key] = previous[key];
     }
@@ -85,6 +88,19 @@ test("MCP reports unsupported effort without silently retrying at a lower level"
     assert.equal(result.status, "failed");
     assert.match(result.error, /high, medium, low/);
     assert.match(result.error, /has not substituted/);
+  });
+});
+
+test("rescue deep alias and design inherit configured effort when omitted", async () => {
+  await withFixture(async (cwd) => {
+    process.env.MOCK_REQUIRE_DEFAULT_EFFORT = "1";
+    for (const tool of ["grok_rescue", "grok_design"]) {
+      const reply = await runCompanion(tool, {
+        cwd, prompt: "Verify the fixture", model: "deep", json: true
+      });
+      assert.equal(reply.isError, false, JSON.stringify(reply));
+      assert.equal(JSON.parse(reply.content[0].text).status, "completed");
+    }
   });
 });
 

@@ -1,9 +1,5 @@
 const DEFAULT_MODEL_ALIASES = new Set(["fast", "default", "deep", "grok"]);
 
-const PRESET_EFFORT = new Map([
-  ["deep", "high"]
-]);
-
 /**
  * Resolve plugin convenience aliases without pinning a model id that can go stale.
  * Returning null lets the installed Grok CLI select its configured default model.
@@ -20,13 +16,10 @@ export function normalizeModel(model) {
 }
 
 /**
- * Preserve the deep preset, then let the installed CLI validate explicit effort
- * names. Never substitute a different reasoning level for an explicit request.
+ * Omitted effort inherits the CLI configuration, including for model aliases.
+ * Let the CLI validate explicit values without substituting another level.
  */
-export function normalizeEffort(effort, modelAlias) {
-  if (effort == null && modelAlias && PRESET_EFFORT.has(String(modelAlias).toLowerCase())) {
-    return PRESET_EFFORT.get(String(modelAlias).toLowerCase());
-  }
+export function normalizeEffort(effort) {
   if (effort == null) {
     return null;
   }

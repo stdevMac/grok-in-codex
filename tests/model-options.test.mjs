@@ -21,8 +21,8 @@ test("self-check is expressed in the prompt for CLIs without --check", () => {
   assert.equal(withSelfCheckInstruction("Fix the bug", false), "Fix the bug");
 });
 
-test("deep keeps its effort preset and explicit efforts pass through", () => {
-  assert.equal(normalizeEffort(undefined, "deep"), "high");
+test("omitted effort inherits config for every alias and explicit values pass through", () => {
+  assert.equal(normalizeEffort(undefined, "deep"), null);
   assert.equal(normalizeEffort(undefined, "fast"), null);
   assert.equal(normalizeEffort("xhigh", "fast"), "xhigh");
   assert.equal(normalizeEffort("future-effort", null), "future-effort");

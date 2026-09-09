@@ -134,9 +134,9 @@ For multi-PR or ambiguous product work, prefer:
 - Prefer **denylist** (`--disallowed-tools`) over tools allowlist.
 - Media: no yolo / no tools allowlist.
 - `dryRun` / `validateOnly` / babysit `list`: **read-only** (no yolo).
-- `fast`, `default`, `deep`, and `grok` aliases defer to the installed CLI's configured default model instead of pinning a model id that can expire. `deep` also selects `high` effort.
+- `fast`, `default`, `deep`, and `grok` aliases defer to the installed CLI's configured default model instead of pinning a model id that can expire. All aliases inherit the configured reasoning effort when `effort` is omitted.
 - Explicit model ids pass through unchanged. Discover current ids with `grok models`.
-- Explicit effort ids pass through unchanged to the installed CLI for validation. CLI 1.0.24 accepts `low`, `medium`, and `high`; do not promise `xhigh` or silently substitute another level.
+- Explicit effort ids pass through unchanged to the installed CLI for validation. The CLI 1.0.24 flag accepts `low`, `medium`, and `high`, while `[models] default_reasoning_effort = "xhigh"` in `~/.grok/config.toml` works when no effort flag is sent. Omit `effort` to inherit that config; never silently substitute another level.
 
 ## Environment variables
 
