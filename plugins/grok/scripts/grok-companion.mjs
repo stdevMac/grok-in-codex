@@ -37,7 +37,8 @@ import {
   parseGrokJsonOutput,
   runGrok,
   runGrokDoctor,
-  spawnGrokBackground
+  spawnGrokBackground,
+  validateLegacyRescueOptions
 } from "./lib/grok.mjs";
 import {
   AmbiguousJobError,
@@ -114,8 +115,8 @@ function printUsage() {
       "Usage:",
       "  setup [--enable-review-gate|--disable-review-gate] [--json]",
       "  task [--background] [--read-only] [--resume-last|--resume-session <id>|--fresh]",
-      "       [--model <id|fast|deep>] [--effort <level>] [--worktree [name]] [--check]",
-      "       [--best-of-n <n>] [--sandbox <profile>] [--plan] [--permission-mode <mode>]",
+      "       [--model <id|fast|deep>] [--effort <level>] [--worktree [name]]",
+      "       [--sandbox <profile>] [--plan] [--permission-mode <mode>]",
       "       [--agent <name>] [--no-subagents] [--memory|--no-memory]",
       "       [--allow RULE]... [--deny RULE]... [--disable-web-search] [--fork-session]",
       "       [--max-turns <n>] [prompt]",
@@ -196,7 +197,7 @@ function normalizeEffort(effort, modelAlias) {
   if (!VALID_EFFORTS.has(normalized)) {
     throw new Error(`Invalid --effort value: ${effort}. Expected one of ${[...VALID_EFFORTS].join(", ")}`);
   }
-  return normalized === "max" ? "xhigh" : normalized;
+  return normalized;
 }
 
 function titleFromPrompt(prompt, fallback = "Grok task") {
@@ -290,7 +291,7 @@ function finalizeJob(cwd, job, grokResult, extras = {}) {
 
   const error = ok
     ? null
-    : humanizeGrokFailure({
+    : parsed?.parsed?.type === "error" ? parsed.error : humanizeGrokFailure({
         parsedError: parsed?.error,
         stderr: grokResult.stderr,
         stdout: grokResult.stdout,
@@ -337,6 +338,11 @@ function finalizeJob(cwd, job, grokResult, extras = {}) {
     postPending,
     wantPostPending: Boolean(jobForPost.wantPostPending),
     grokSessionId: sessionId,
+    requestId: parsed?.requestId ?? null,
+    stopReason: parsed?.stopReason ?? null,
+    thought: parsed?.thought ?? null,
+    terminalEventReceived: parsed?.parsed?.terminalEventReceived ?? null,
+    signal: grokResult.signal ?? null,
     exitCode: grokResult.status,
     error,
     stderr: grokResult.stderr || null
@@ -426,7 +432,7 @@ function maybeFinalizeBackgroundJob(cwd, job) {
 
   const error = ok
     ? null
-    : humanizeGrokFailure({
+    : parsed?.parsed?.type === "error" ? parsed.error : humanizeGrokFailure({
         parsedError: parsed.error,
         stderr: payload.stderr,
         stdout: payload.stdout,
@@ -472,6 +478,11 @@ function maybeFinalizeBackgroundJob(cwd, job) {
     postPending,
     wantPostPending: Boolean(jobForPost.wantPostPending),
     grokSessionId: sessionId,
+    requestId: parsed.requestId ?? null,
+    stopReason: parsed.stopReason ?? null,
+    thought: parsed.thought ?? null,
+    terminalEventReceived: parsed.parsed?.terminalEventReceived ?? null,
+    signal: payload.signal ?? null,
     exitCode: payload.exitCode,
     error,
     stderr: payload.stderr || null,
@@ -599,6 +610,8 @@ function runOrBackground(cwd, job, grokOptions, { background, json, renderPayloa
         model: job.model,
         write: job.write,
         grokSessionId: finished.grokSessionId,
+        requestId: finished.requestId,
+        stopReason: finished.stopReason,
         text: finished.resultText,
         error: finished.error,
         review: finished.review,
@@ -743,6 +756,7 @@ async function commandTask(argv) {
     }
   });
 
+  validateLegacyRescueOptions({ check: options.check, bestOfN: options["best-of-n"] });
   const cwd = resolveWorkspaceRoot(options.cwd || process.cwd());
   const prompt = positionals.join(" ").trim();
   if (!prompt) {
@@ -826,6 +840,8 @@ async function commandTask(argv) {
         model,
         write: writeMode,
         grokSessionId: finished.grokSessionId,
+        requestId: finished.requestId,
+        stopReason: finished.stopReason,
         text: finished.resultText,
         error: finished.error,
         usage: finished.usage,
@@ -997,6 +1013,8 @@ async function commandReview(argv, { adversarial = false } = {}) {
         model,
         write: false,
         grokSessionId: finished.grokSessionId,
+        requestId: finished.requestId,
+        stopReason: finished.stopReason,
         text: finished.resultText,
         error: finished.error,
         review: finished.review,
@@ -1158,6 +1176,8 @@ async function commandDesign(argv) {
         model,
         write: true,
         grokSessionId: finished.grokSessionId,
+        requestId: finished.requestId,
+        stopReason: finished.stopReason,
         text: finished.resultText,
         error: finished.error,
         usage: finished.usage,
@@ -1264,6 +1284,8 @@ async function commandExecutePlan(argv) {
         model,
         write: writeCapable,
         grokSessionId: finished.grokSessionId,
+        requestId: finished.requestId,
+        stopReason: finished.stopReason,
         text: finished.resultText,
         error: finished.error,
         usage: finished.usage,
@@ -1325,6 +1347,8 @@ async function commandBabysit(argv) {
         model,
         write: writeCapable,
         grokSessionId: finished.grokSessionId,
+        requestId: finished.requestId,
+        stopReason: finished.stopReason,
         text: finished.resultText,
         error: finished.error,
         usage: finished.usage,
@@ -1385,6 +1409,8 @@ async function commandDocument(argv) {
         model,
         write: true,
         grokSessionId: finished.grokSessionId,
+        requestId: finished.requestId,
+        stopReason: finished.stopReason,
         text: finished.resultText,
         error: finished.error,
         usage: finished.usage,

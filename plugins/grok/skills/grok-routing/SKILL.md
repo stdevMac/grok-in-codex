@@ -10,7 +10,7 @@ user-invocable: false
 
 - Substantial debugging after Codex is stuck
 - Second-opinion implementation of a non-trivial change
-- Best-of-N alternative approaches (`bestOfN`)
+- Separate ordinary rescue jobs for alternative approaches when requested
 - Risky edits that should land in a worktree (`worktree`)
 - **Ambiguous architecture** → `grok_plan` then implement, or `grok_design`
 - **Multi-PR delivery from a design doc** → `grok_execute_plan`

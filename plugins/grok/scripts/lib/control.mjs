@@ -1,4 +1,3 @@
-const SANDBOX = new Set(["off", "workspace", "read-only", "strict", "devbox"]);
 const SANDBOX_ALIAS = new Map([
   ["ro", "read-only"],
   ["readonly", "read-only"],
@@ -57,17 +56,14 @@ export function normalizeControlOptions(raw = {}) {
   };
 
   if (raw.sandbox != null && raw.sandbox !== false && raw.sandbox !== "") {
-    let s = String(raw.sandbox).trim().toLowerCase();
-    s = SANDBOX_ALIAS.get(s) || s;
-    if (s === "true") {
-      s = "workspace";
+    const name = String(raw.sandbox).trim();
+    // Named profiles are resolved by Grok's sandbox.toml. Preserve their identity;
+    // only exact documented shorthand aliases are rewritten.
+    const s = name === "true" ? "workspace" : SANDBOX_ALIAS.get(name) || name;
+    if (!s || /[\s\x00-\x1f\x7f]/.test(s) || s.startsWith("-")) {
+      throw new Error(`Invalid --sandbox profile name: ${raw.sandbox}`);
     }
-    if (!SANDBOX.has(s)) {
-      throw new Error(
-        `Invalid --sandbox: ${raw.sandbox}. Expected one of ${[...SANDBOX].join(", ")}`
-      );
-    }
-    out.sandbox = s === "off" ? null : s;
+    out.sandbox = s;
   }
 
   const pmRaw = raw.permissionMode ?? raw["permission-mode"];

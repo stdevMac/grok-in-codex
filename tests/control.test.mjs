@@ -18,8 +18,13 @@ test("normalizeControlOptions maps sandbox aliases", () => {
   assert.equal(c.sandbox, "read-only");
 });
 
-test("normalizeControlOptions rejects unknown sandbox", () => {
-  assert.throws(() => normalizeControlOptions({ sandbox: "banana" }), /sandbox/);
+test("normalizeControlOptions preserves named profiles and explicit off", () => {
+  for (const sandbox of ["banana", "MyCustomProfile", "workspace", "read-only", "off"]) {
+    assert.equal(normalizeControlOptions({ sandbox }).sandbox, sandbox);
+  }
+  assert.equal(normalizeControlOptions({ sandbox: "ws" }).sandbox, "workspace");
+  assert.equal(normalizeControlOptions({ sandbox: "readonly" }).sandbox, "read-only");
+  assert.throws(() => normalizeControlOptions({ sandbox: "bad\nprofile" }), /sandbox/);
 });
 
 test("controlToGrokFields emits plan permission mode", () => {
@@ -100,11 +105,10 @@ test("parseArgs accumulates array options for allow/deny", () => {
 
 test("controlToJobConfig persists schema fields", () => {
   const control = normalizeControlOptions({ sandbox: "strict", planMode: true });
-  const config = controlToJobConfig(control, { bestOfN: 3, check: true });
+  const config = controlToJobConfig(control, { worktree: "isolated" });
   assert.equal(config.sandbox, "strict");
   assert.equal(config.planMode, true);
-  assert.equal(config.bestOfN, 3);
-  assert.equal(config.check, true);
+  assert.equal(config.worktree, "isolated");
 });
 
 test("compareSemver works", () => {
