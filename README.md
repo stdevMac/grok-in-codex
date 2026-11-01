@@ -30,6 +30,8 @@ Using Claude Code instead? Use the sibling plugin: [grok-in-claude](https://gith
 | `grok_result` | Final output (plan.md preferred for plan jobs; usage + artifacts) |
 | `grok_cancel` | Cancel a background job |
 
+Sandbox profiles include `workspace` and `read-only`; custom profile names pass through unchanged for Grok to resolve. The aliases `ws`, `ro`, and `readonly` select the corresponding built-ins. Explicit `off` overrides inherited sandbox selection. Parser acceptance does not verify profile existence or policy enforcement.
+
 **Control flags** (rescue/plan/review and long-running jobs): `sandbox`, `planMode` / `permissionMode`, `agent`, `noSubagents`, `memory` / `noMemory`, `allow` / `deny`, `disableWebSearch`, `forkSession`, `maxTurns`.
 
 Skills: brand/media recipes, routing (including plan→design→execute-plan), runtime contracts, workflows, prompting.
@@ -151,7 +153,7 @@ Default state root when unset: `~/.grok/codex-plugin/state/`. Codex does **not**
 
 - Write-capable by default.
 - Use `readOnly=true` for investigation-only work.
-- Use `worktree=true` / `check=true` / `bestOfN` for safer or parallel attempts.
+- Use `worktree=true` to isolate an attempt. Grok CLI 1.0.70 does not support `check` or `bestOfN`; legacy requests fail locally. Request verification in the prompt or run separate rescue jobs.
 - Full control surface available (sandbox, memory, agent, allow/deny, maxTurns, …).
 
 ### Plan / design / execute

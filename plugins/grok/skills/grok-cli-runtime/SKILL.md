@@ -69,7 +69,7 @@ MCP input keys map to companion flags:
 - Map `fast` → `--model grok-composer-2.5-fast`
 - Map `deep` → `--model grok-4.5 --effort high`
 - `resume` → `--resume-last`; `resumeSession` → resume that id; `fresh` → no resume
-- Pass `worktree`, `check`, `bestOfN` through when present
+- Pass `worktree` through when present. Grok CLI 1.0.70 does not support `check` or `bestOfN`; reject legacy requests locally and request verification in the prompt.
 - Default write-capable; `readOnly` only when requested
 
 ## Plan (`grok_plan`)

@@ -6,6 +6,8 @@ import path from "node:path";
 import readline from "node:readline";
 import { fileURLToPath } from "node:url";
 
+import { validateLegacyRescueOptions } from "../scripts/lib/grok.mjs";
+
 const SERVER_VERSION = "0.5.8";
 const ROOT_DIR = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const COMPANION = path.join(ROOT_DIR, "scripts", "grok-companion.mjs");
@@ -21,7 +23,7 @@ const WORKSPACE_PROPERTY = {
 
 /** Shared control surface for long-running Grok jobs (mirrors Claude companion flags). */
 const CONTROL_PROPERTIES = {
-  sandbox: stringSchema("Grok sandbox profile (e.g. read-only, workspace-write)."),
+  sandbox: stringSchema("Grok sandbox profile (e.g. read-only, workspace, or a custom profile name). Use off to override inherited sandbox selection."),
   planMode: booleanSchema("Enable Grok plan mode (--plan)."),
   permissionMode: stringSchema("Permission mode passed to Grok."),
   agent: stringSchema("Grok agent name to use."),
@@ -84,8 +86,6 @@ const TOOL_DEFINITIONS = [
         worktree: booleanSchema("Run edits in a Grok-managed git worktree."),
         worktreeName: stringSchema("Name for a Grok-managed git worktree."),
         worktreeRef: stringSchema("Base ref for the Grok worktree."),
-        check: booleanSchema("Ask Grok to verify its own work before returning."),
-        bestOfN: integerSchema("Run N parallel attempts of the same task and keep the best."),
         verbatim: booleanSchema("Avoid adding extra wrapper instructions to the prompt."),
         ...COMMON_JOB_PROPERTIES
       }
@@ -459,6 +459,7 @@ export function buildCompanionInvocation(toolName, input = {}) {
       pushFlag(args, input.json, "--json");
       break;
     case "grok_rescue":
+      validateLegacyRescueOptions(input);
       command = "task";
       args.push(command);
       pushFlag(args, input.background, "--background");
@@ -478,8 +479,6 @@ export function buildCompanionInvocation(toolName, input = {}) {
         pushFlag(args, input.worktree, "--worktree");
       }
       pushValue(args, input.worktreeRef, "--worktree-ref");
-      pushFlag(args, input.check, "--check");
-      pushValue(args, input.bestOfN, "--best-of-n");
       pushFlag(args, input.verbatim, "--verbatim");
       appendControlArgs(args, input);
       pushFlag(args, input.json, "--json");

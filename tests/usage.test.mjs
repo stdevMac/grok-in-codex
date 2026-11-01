@@ -55,3 +55,13 @@ test("formatUsageSummary returns human string", () => {
   assert.match(s, /tokens: 100/);
   assert.match(s, /\$0\.0100/);
 });
+
+test("partial cost metadata survives error usage and is visibly incomplete", () => {
+  const usage = extractUsageFromParsed({ type: "error", total_cost_usd: 0.5, total_cost_usd_ticks: 500000000, cost_is_partial: true });
+  assert.equal(usage.total_cost_usd_ticks, 500000000);
+  assert.equal(usage.cost_is_partial, true);
+  assert.match(formatUsageSummary(usage), /cost partial/);
+  assert.doesNotMatch(formatUsageSummary(usage), /cost: \$/);
+  const ticksOnly = extractUsageFromParsed({ type: "error", total_cost_usd_ticks: 50, cost_is_partial: true });
+  assert.equal(ticksOnly.total_cost_usd_ticks, 50);
+});

@@ -118,7 +118,14 @@ export function getGrokAuthStatus() {
   };
 }
 
+export function validateLegacyRescueOptions(options = {}) {
+  if (options.check || (options.bestOfN != null && Number(options.bestOfN) !== 1)) {
+    throw new Error("Grok CLI 1.0.70 does not support --check/check or --best-of-n/bestOfN. Remove these options; request verification in the prompt or run separate ordinary rescue jobs.");
+  }
+}
+
 export function buildGrokArgs(options = {}) {
+  validateLegacyRescueOptions(options);
   const args = [];
 
   if (options.promptFile) {
@@ -151,12 +158,6 @@ export function buildGrokArgs(options = {}) {
   }
   if (options.maxTurns) {
     args.push("--max-turns", String(options.maxTurns));
-  }
-  if (options.bestOfN && Number(options.bestOfN) > 1) {
-    args.push("--best-of-n", String(options.bestOfN));
-  }
-  if (options.check) {
-    args.push("--check");
   }
   if (options.worktree) {
     if (typeof options.worktree === "string" && options.worktree !== "true") {
@@ -364,7 +365,12 @@ export function parseGrokJsonOutput(stdout) {
           const rawMessage = parsed.message || "Grok returned an error object";
           return {
             ok: false,
-            error: humanizeGrokFailure({ parsedError: rawMessage, stdout: text }),
+            text: typeof parsed.text === "string" ? parsed.text : "",
+            sessionId: parsed.sessionId ?? null,
+            stopReason: parsed.stopReason ?? null,
+            requestId: parsed.requestId ?? null,
+            thought: parsed.thought ?? null,
+            error: String(rawMessage),
             raw: text,
             parsed
           };
@@ -408,6 +414,7 @@ export function parseGrokJsonOutput(stdout) {
 }
 
 export function runGrok(options = {}) {
+  validateLegacyRescueOptions(options);
   const availability = getGrokAvailability();
   if (!availability.available) {
     throw new Error(availability.reason);
@@ -429,7 +436,7 @@ export function runGrok(options = {}) {
   const parsed = parseGrokJsonOutput(stdout);
   const ok = result.status === 0 && parsed.ok;
 
-  if (!ok) {
+  if (!ok && parsed.parsed?.type !== "error") {
     parsed.error = humanizeGrokFailure({
       parsedError: parsed.error,
       stderr,
@@ -545,6 +552,8 @@ let stderr = "";
 let textAcc = "";
 let thoughtAcc = "";
 let sessionId = null;
+let terminalEvent = null;
+let streamError = null;
 let lineCount = 0;
 let lastMessage = "running";
 
@@ -564,10 +573,13 @@ function handleStreamLine(line) {
       thoughtAcc += evt.data;
       lastMessage =
         formatStreamProgressMessage(thoughtAcc, { prefix: "thinking: " }) || "running";
-    } else if (evt.type === "end") {
+    } else if (evt.type === "end" || evt.type === "result") {
+      terminalEvent = { ...terminalEvent, ...evt };
       sessionId = evt.sessionId || sessionId;
       lastMessage = "finishing";
     } else if (evt.type === "error") {
+      terminalEvent = { ...terminalEvent, ...evt };
+      streamError = evt;
       lastMessage = evt.message || "error";
     }
     if (evt.sessionId) sessionId = evt.sessionId;
@@ -614,10 +626,15 @@ child.on("close", (code, signal) => {
   if (streaming) {
     // Reconstruct a json-format-like payload for the companion parser.
     finalStdout = JSON.stringify({
-      text: textAcc || stdout,
-      stopReason: code === 0 ? "EndTurn" : "Error",
+      ...terminalEvent,
+      ...(streamError ? { type: "error", message: streamError.message || "Grok returned a streamed error" } : {}),
+      text: terminalEvent?.text ?? textAcc,
+      thought: terminalEvent?.thought ?? (thoughtAcc || null),
+      stopReason: terminalEvent?.stopReason ?? null,
       sessionId,
-      requestId: null
+      requestId: terminalEvent?.requestId ?? null,
+      terminalEventReceived: terminalEvent !== null,
+      ...(terminalEvent ? {} : { usage_is_incomplete: true })
     });
   }
 
@@ -636,8 +653,8 @@ child.on("close", (code, signal) => {
     fs.writeFileSync(tmp, JSON.stringify(payload, null, 2) + "\\n");
     fs.renameSync(tmp, resultFile);
     writeProgress({
-      phase: code === 0 ? "completed" : "failed",
-      message: code === 0 ? "completed" : "failed with code " + code,
+      phase: code === 0 && !streamError ? "completed" : "failed",
+      message: streamError ? (streamError.message || "stream error") : code === 0 ? "completed" : "failed with code " + code,
       lines: lineCount,
       sessionId
     });
@@ -655,6 +672,7 @@ child.on("close", (code, signal) => {
  * Uses streaming-json when progressFile is set so status can show live activity.
  */
 export function spawnGrokBackground(options = {}) {
+  validateLegacyRescueOptions(options);
   const availability = getGrokAvailability();
   if (!availability.available) {
     throw new Error(availability.reason);
